@@ -1,0 +1,22 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Hasil konversi
+*.pdf
+
+# Build
+build/
+dist/
+*.spec
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
