@@ -15,6 +15,9 @@ build/
 dist/
 *.spec
 
+# Dokumen lokal (tidak di-push)
+md files/
+
 # Editor / OS
 .idea/
 .vscode/
