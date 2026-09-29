@@ -1,1 +1,6 @@
+# Runtime aplikasi (app.py) — butuh Python 3.10+ (tkinter sudah bawaan Windows/macOS)
 pillow>=10.0
+# Hanya untuk selfcheck.py (verifikasi ukuran halaman PDF)
+pypdf>=4.0
+# Catatan Linux: tkinter bukan paket pip, instal via sistem:
+#   sudo apt install python3-tk   (Debian/Ubuntu)

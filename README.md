@@ -38,12 +38,8 @@ python selfcheck.py
 ```
 
 Skrip ini membuat gambar contoh di folder sementara, mengonversinya, lalu memeriksa
-jumlah halaman dan ukuran halaman hasil dengan `pypdf`. Skrip ini butuh `pypdf`
-(hanya untuk pengecekan, aplikasi utama tidak membutuhkannya):
-
-```bash
-pip install pypdf
-```
+jumlah halaman dan ukuran halaman hasil dengan `pypdf` (sudah termasuk di
+`requirements.txt`, jadi cukup `pip install -r requirements.txt`):
 
 ## Catatan
 

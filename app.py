@@ -1,8 +1,16 @@
-"""IMG TO PDF - konversi gambar ke PDF lewat GUI tkinter.
-
-Hanya butuh Pillow (tanpa dependency tambahan).
-Jalankan: python app.py
 """
+  BLOK 1 : Import & konstanta global
+  BLOK 2 : Fungsi inti konversi (logika murni, tanpa GUI)
+  BLOK 3 : Kelas GUI ImageToPdfApp (tampilan + interaksi + thread)
+  BLOK 4 : Entry point program
+"""
+
+# ======================================================================
+# BLOK 1: IMPORT & KONSTANTA GLOBAL — AWAL
+# Tugas blok: menyiapkan semua kebutuhan dasar — library standar (os,
+#   threading, queue), tkinter untuk GUI, Pillow untuk olah gambar,
+#   serta konstanta format file, ukuran kertas, dan orientasi.
+# ======================================================================
 
 from __future__ import annotations
 
@@ -30,11 +38,28 @@ PAGE_SIZES_MM = {
 ORIENTATIONS = ("Auto", "Potret", "Lanskap")
 MM_PER_INCH = 25.4
 
+# ======================================================================
+# BLOK 1: IMPORT & KONSTANTA GLOBAL — AKHIR
+# ======================================================================
 
+
+# ======================================================================
+# BLOK 2: FUNGSI INTI KONVERSI — AWAL
+# Tugas blok: logika murni tanpa GUI — memuat gambar, menghitung ukuran
+#   halaman, menata gambar ke halaman, menyimpan PDF, dan membuat nama
+#   file unik. Blok ini yang diuji otomatis oleh selfcheck.py.
+# ======================================================================
+
+# ----- Fungsi 2.1: mm_to_px — AWAL -----
+# Tugas: mengubah milimeter ke piksel berdasarkan DPI.
 def mm_to_px(mm: float, dpi: int) -> int:
     return max(0, round(mm / MM_PER_INCH * dpi))
+# ----- Fungsi 2.1: mm_to_px — AKHIR -----
 
 
+# ----- Fungsi 2.2: load_image — AWAL -----
+# Tugas: membuka gambar, membetulkan orientasi EXIF, meratakan
+#   transparansi (alpha) ke latar putih agar tidak jadi hitam di PDF.
 def load_image(path: str) -> Image.Image:
     """Buka gambar, betulkan orientasi EXIF, ratakan alpha ke latar putih."""
     image = Image.open(path)
@@ -47,15 +72,23 @@ def load_image(path: str) -> Image.Image:
         background.paste(rgba, mask=rgba.getchannel("A"))
         return background
     return image.convert("RGB")
+# ----- Fungsi 2.2: load_image — AKHIR -----
 
 
+# ----- Fungsi 2.3: page_pixel_size — AWAL -----
+# Tugas: menghitung lebar-tinggi halaman dalam piksel dari ukuran
+#   milimeter + DPI, dengan opsi tukar sisi untuk lanskap.
 def page_pixel_size(size_mm: tuple[float, float], dpi: int, landscape: bool) -> tuple[int, int]:
     width_mm, height_mm = size_mm
     if landscape:
         width_mm, height_mm = height_mm, width_mm
     return mm_to_px(width_mm, dpi), mm_to_px(height_mm, dpi)
+# ----- Fungsi 2.3: page_pixel_size — AKHIR -----
 
 
+# ----- Fungsi 2.4: fit_to_page — AWAL -----
+# Tugas: menempatkan gambar di tengah halaman berukuran tetap (mis. A4)
+#   dengan rasio aspek tetap terjaga (contain + tempel tengah).
 def fit_to_page(
     image: Image.Image,
     size_mm: tuple[float, float],
@@ -79,8 +112,11 @@ def fit_to_page(
     page = Image.new("RGB", (page_w, page_h), "white")
     page.paste(fitted, ((page_w - fitted.width) // 2, (page_h - fitted.height) // 2))
     return page
+# ----- Fungsi 2.4: fit_to_page — AKHIR -----
 
 
+# ----- Fungsi 2.5: save_pdf — AWAL -----
+# Tugas: menyimpan daftar halaman (Pillow Image) menjadi satu file PDF.
 def save_pdf(pages: list[Image.Image], out_path: str, dpi: int, quality: int) -> None:
     first, *rest = pages
     first.save(
@@ -91,8 +127,13 @@ def save_pdf(pages: list[Image.Image], out_path: str, dpi: int, quality: int) ->
         resolution=dpi,
         quality=quality,
     )
+# ----- Fungsi 2.5: save_pdf — AKHIR -----
 
 
+# ----- Fungsi 2.6: convert_images — AWAL -----
+# Tugas: orkestrasi utama — memuat tiap gambar, (opsional) menatanya ke
+#   halaman tetap, menyimpan PDF, melaporkan progres. Mengembalikan
+#   jumlah halaman yang dihasilkan.
 def convert_images(
     paths: list[str],
     out_path: str,
@@ -119,8 +160,12 @@ def convert_images(
 
     save_pdf(pages, out_path, dpi, quality)
     return len(pages)
+# ----- Fungsi 2.6: convert_images — AKHIR -----
 
 
+# ----- Fungsi 2.7: unique_pdf_path — AWAL -----
+# Tugas: membuat nama file PDF yang unik (hasil.pdf, hasil (2).pdf, ...)
+#   agar file lama tidak tertimpa diam-diam.
 def unique_pdf_path(folder: str, stem: str) -> str:
     """Nama file unik agar PDF dengan nama sama tidak saling menimpa."""
     candidate = os.path.join(folder, f"{stem}.pdf")
@@ -129,11 +174,27 @@ def unique_pdf_path(folder: str, stem: str) -> str:
         candidate = os.path.join(folder, f"{stem} ({number}).pdf")
         number += 1
     return candidate
+# ----- Fungsi 2.7: unique_pdf_path — AKHIR -----
 
+# ======================================================================
+# BLOK 2: FUNGSI INTI KONVERSI — AKHIR
+# ======================================================================
+
+
+# ======================================================================
+# BLOK 3: KELAS GUI (ImageToPdfApp) — AWAL
+# Tugas blok: seluruh tampilan dan interaksi — daftar gambar, panel opsi,
+#   pemilihan output, tombol konversi — plus thread pekerja agar jendela
+#   tidak membeku, dengan komunikasi thread lewat queue + event.
+# ======================================================================
 
 class ImageToPdfApp(tk.Tk):
     """Jendela utama aplikasi."""
 
+    # ----- Sub-blok 3.1: Inisialisasi & state — AWAL -----
+    # Tugas: judul/ukuran jendela, variabel opsi (mode, halaman, orientasi,
+    #   margin, DPI, kualitas, output, status), daftar path, antrean event,
+    #   dan penjadwalan pompa event tiap 100 ms.
     def __init__(self) -> None:
         super().__init__()
         self.title("IMG TO PDF")
@@ -155,8 +216,12 @@ class ImageToPdfApp(tk.Tk):
 
         self._build_widgets()
         self.after(100, self._drain_events)
+    # ----- Sub-blok 3.1: Inisialisasi & state — AKHIR -----
 
-    # ---------- tampilan ----------
+    # ----- Sub-blok 3.2: Pembangunan tampilan — AWAL -----
+    # Tugas: menyusun toolbar (Tambah/Naik/Turun/Hapus/Bersihkan),
+    #   listbox + scrollbar, panel Opsi, panel Simpan, progress bar,
+    #   tombol Konversi, dan label status.
 
     def _build_widgets(self) -> None:
         root = ttk.Frame(self, padding=10)
@@ -248,7 +313,12 @@ class ImageToPdfApp(tk.Tk):
 
         ttk.Label(root, textvariable=self.status, anchor="w").grid(row=5, column=0, sticky="ew")
 
-    # ---------- daftar gambar ----------
+    # ----- Sub-blok 3.2: Pembangunan tampilan — AKHIR -----
+
+    # ----- Sub-blok 3.3: Kelola daftar gambar — AWAL -----
+    # Tugas: tambah (multi-pilih, cegah duplikat), geser urutan Naik/Turun
+    #   (mendukung multi-seleksi), hapus pilihan, bersihkan semua, dan
+    #   menggambar ulang isi listbox.
 
     def add_images(self) -> None:
         selected = filedialog.askopenfilenames(title="Pilih gambar", filetypes=IMAGE_FILETYPES)
@@ -302,7 +372,12 @@ class ImageToPdfApp(tk.Tk):
         if not self.paths:
             self.status.set("Belum ada gambar.")
 
-    # ---------- output ----------
+    # ----- Sub-blok 3.3: Kelola daftar gambar — AKHIR -----
+
+    # ----- Sub-blok 3.4: Penentuan output — AWAL -----
+    # Tugas: menyesuaikan label/field saat mode berubah, dan membuka
+    #   dialog yang tepat — simpan file PDF (mode gabungan) atau pilih
+    #   folder (mode per-file).
 
     def _mode_changed(self) -> None:
         per_file = self.mode.get() == "each"
@@ -327,7 +402,13 @@ class ImageToPdfApp(tk.Tk):
         if target:
             self.output.set(os.path.abspath(target))
 
-    # ---------- proses konversi ----------
+    # ----- Sub-blok 3.4: Penentuan output — AKHIR -----
+
+    # ----- Sub-blok 3.5: Validasi & thread konversi — AWAL -----
+    # Tugas: memeriksa input (daftar, output, angka margin/DPI/kualitas),
+    #   menyiapkan job, menjalankan _worker di thread daemon, dan
+    #   mengirim hasil/progres lewat antrean event (tidak menyentuh
+    #   widget langsung dari thread).
 
     def _read_options(self) -> tuple[float, int, int] | None:
         try:
@@ -410,6 +491,13 @@ class ImageToPdfApp(tk.Tk):
     def _on_page(self, index: int, total: int, path: str) -> None:
         self.events.put(("progress", index, total))
 
+    # ----- Sub-blok 3.5: Validasi & thread konversi — AKHIR -----
+
+    # ----- Sub-blok 3.6: Pompa event & status sibuk — AWAL -----
+    # Tugas: _drain_events menguras antrean tiap 100 ms dan memutakhirkan
+    #   progress/status/dialog dari thread utama; _set_busy mengunci/
+    #   membuka tombol dan me-reset progress bar.
+
     def _drain_events(self) -> None:
         try:
             while True:
@@ -441,6 +529,18 @@ class ImageToPdfApp(tk.Tk):
         if not busy:
             self.progress.configure(value=0)
 
+    # ----- Sub-blok 3.6: Pompa event & status sibuk — AKHIR -----
+
+# ======================================================================
+# BLOK 3: KELAS GUI (ImageToPdfApp) — AKHIR
+# ======================================================================
+
+
+# ======================================================================
+# BLOK 4: ENTRY POINT — AWAL
+# Tugas blok: titik masuk program — membuat jendela utama dan menjalankan
+#   event loop tkinter. Blok ini yang dieksekusi saat `python app.py`.
+# ======================================================================
 
 def main() -> None:
     ImageToPdfApp().mainloop()
@@ -448,3 +548,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# ======================================================================
+# BLOK 4: ENTRY POINT — AKHIR
+# ======================================================================
